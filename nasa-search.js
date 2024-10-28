@@ -50,17 +50,16 @@ export class NasaSearch extends LitElement {
       }
       button {
         font-size: 20px;
-        line-height: 40px;
-        margin-left: 8px;
+        line-height: var(--ddd-spacing-10);
+        margin-left: var(--ddd-spacing-2);
         padding: 0 24px;
-        border-radius: 12px;
+        border-radius: var(--ddd-spacing-3);
       }
       button:hover {
         background-color: var(--ddd-theme-default-potential0);
         color: var(--ddd-theme-default-slateMaxLight);
         transition-duration: 0.1s;
       }
-
     `;
   }
 
@@ -71,35 +70,43 @@ export class NasaSearch extends LitElement {
     this.loading = false;
     this.items = [];
   }
-//added a search button so the NASA api is not spammed with queries for each character input
+  //added a search button so the NASA api is not spammed with queries for each character input
   render() {
     return html`
-    <h2>${this.title}</h2>
-    <details open>
-      <summary>Search Inputs</summary>
-      <div> 
-        <input id="input" placeholder="  Search NASA images" @keyup="${this.handleKeyUp}" />
-        <button @click="${this.search}">Search</button> 
+      <h2>${this.title}</h2>
+      <details open>
+        <summary>Search Inputs</summary>
+        <div> 
+          <input id="input" placeholder="  Search NASA images" @keyup="${this.handleKeyUp}" />
+          <button @click="${this.search}">Search</button> 
+        </div>
+      </details>
+      <div class="results">
+        ${this.items.map((item) => {
+          const data = item.data[0];
+          const links = item.links[0];
+          // extracts the creator or alternative fields if not present
+          const owner = data.photographer || data.creator || data.center || 'Unknown';
+
+          return html`
+            <nasa-image
+              source="${links.href}"
+              title="${data.title}"
+              alt="${data.description}"
+              owner="${owner}"
+            ></nasa-image>
+          `;
+        })}
       </div>
-    </details>
-    <div class="results">
-      ${this.items.map((item) => html`
-      <nasa-image
-        source="${item.links[0].href}"
-        title="${item.data[0].title}"
-        alt="${item.data[0].description}"
-      ></nasa-image>
-      `)}
-    </div>
     `;
   }
-//when a user hits the enter button it searches
+  //when a user hits the enter button it searches
   handleKeyUp(e) {
     if (e.key === 'Enter') {
       this.search();
     }
   }
-
+  //fetches the images from the API based on the user input
   search() {
     this.value = this.shadowRoot.querySelector('#input').value;
   }
@@ -114,15 +121,17 @@ export class NasaSearch extends LitElement {
       this.items = [];
     }
   }
-
+  //when the input is changed it reconstructs the url to fetch the proper results
   updateResults(value) {
     this.loading = true;
-    fetch(`https://images-api.nasa.gov/search?media_type=image&q=${value}`).then(d => d.ok ? d.json(): {}).then(data => {
-      if (data.collection) {
-        this.items = data.collection.items;
-        this.loading = false;
-      }  
-    });
+    fetch(`https://images-api.nasa.gov/search?media_type=image&q=${value}`)
+      .then(d => d.ok ? d.json() : {})
+      .then(data => {
+        if (data.collection) {
+          this.items = data.collection.items;
+          this.loading = false;
+        }  
+      });
   }
 
   static get tag() {
